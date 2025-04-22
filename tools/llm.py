@@ -1,3 +1,4 @@
+import json
 import os
 from dotenv import load_dotenv
 import requests
@@ -25,7 +26,12 @@ def call_llm(user_input: str) -> str:
     }
 
     try:
-        response = requests.post(GROQ_API_URL, headers=HEADERS, json=payload)
+        response = requests.post(
+            GROQ_API_URL,
+            headers=HEADERS,
+            json=payload,
+            timeout=10
+        )
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
