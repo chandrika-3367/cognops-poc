@@ -8,7 +8,7 @@ class GroqLLM(LLM):
         self.model = model
         self.temperature = temperature
         # Replace or pull from env
-        self.groq_api_key = GROQ_API_KEY or "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"
+        self.groq_api_key = GROQ_API_KEY or ""
 
     @property
     def _llm_type(self) -> str:
