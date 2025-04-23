@@ -17,8 +17,12 @@ def run_cognops_crew(issue_description: str, all_issues: list) -> dict:
     }
 
     try:
+        retriever_output = run_retriever(issue_description, all_issues)
+        analyzer_output = run_analyzer(retriever_output)
+
         crew_result["retriever_result"] = retriever_output or {}
         crew_result["analyzer_result"] = analyzer_output or {}
+
         # crew_result["planner_result"] = planner_output or {}
         # crew_result["reporter_result"] = reporter_output or {}
 
