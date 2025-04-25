@@ -1,7 +1,7 @@
 from tools.llm_wrapper import GroqLLM
 from agents.retriever_agent import run_retriever
 from agents.analyzer_agent import run_analyzer
-# from agents.planner_agent import run_planner
+from agents.planner_agent import run_planner
 # from agents.reporter_agent import run_reporter
 import json
 
@@ -12,18 +12,23 @@ def run_cognops_crew(issue_description: str, all_issues: list) -> dict:
     crew_result = {
         "retriever_result": {},
         "analyzer_result": {},
-        # "planner_result": {},
+        "planner_result": {},
         # "reporter_result": {},
     }
 
     try:
         retriever_output = run_retriever(issue_description, all_issues)
-        analyzer_output = run_analyzer(retriever_output)
-
         crew_result["retriever_result"] = retriever_output or {}
+        
+        
+        analyzer_output = run_analyzer(retriever_output)
         crew_result["analyzer_result"] = analyzer_output or {}
-
-        # crew_result["planner_result"] = planner_output or {}
+        
+        
+        planner_output = run_planner(analyzer_output)
+        crew_result["planner_result"] = planner_output or {}
+        
+        
         # crew_result["reporter_result"] = reporter_output or {}
 
         return crew_result
