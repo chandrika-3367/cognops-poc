@@ -49,8 +49,12 @@ def run_planner(analysis_result: dict) -> dict:
 
     try:
         response = call_llm(prompt)
-        print("\n🧠 Raw LLM Response:\n", response)  # DEBUG LINE
-        plan = json.loads(response)  # Validate JSON
+        print("🧠 Raw LLM Response:", response)  # Debug print
+
+        if not response.strip():
+                return {"plan": "[Planner ERROR] Empty response from LLM."}
+
+        plan = json.loads(response)
         return {"plan": plan}
     except Exception as e:
         return {"plan": f"[Planner ERROR] {str(e)}"}

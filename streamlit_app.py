@@ -2,13 +2,21 @@ import streamlit as st
 import requests
 import builtins
 import json
+from agents.planner_agent import run_planner
 
 from agents.retriever_agent import run_retriever
 from agents.analyzer_agent import run_analyzer
-# from agents.planner_agent import run_planner
+from agents.planner_agent import run_planner
 # from agents.reporter_agent import run_reporter
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from tools.llm import call_llm
 from crew.run_cognops_crew import run_cognops_crew
+
+
+
 
 st.set_page_config(page_title="CognOps – AI Ops Panel", layout="wide")
 st.title(" CognOps – AI Incident Response Mesh")
@@ -16,6 +24,62 @@ st.markdown(
     "Empowering agents to triage, reason, plan and report using real GitHub incidents.")
 
 # === GitHub API: Fetch Incidents ===
+
+
+def prettify_text(text):
+    if not isinstance(text, str):
+        return "N/A"
+    return text.replace("_", " ").title()
+
+def display_analysis(analysis_data):
+    if not analysis_data:
+        st.warning("⚠️ No analysis available.")
+        return
+
+    st.subheader("🔎 Analysis")
+    root_cause = analysis_data.get("root_cause", "N/A")
+    severity = analysis_data.get("severity", "N/A")
+    service = analysis_data.get("service", "N/A")
+    symptoms = analysis_data.get("symptoms", [])
+
+    st.markdown(f"- **Root Cause:** {root_cause}")
+    st.markdown(f"- **Severity:** {severity}")
+    st.markdown(f"- **Service:** {service}")
+
+    if symptoms:
+        st.markdown(f"- **Symptoms:**")
+        for symptom in symptoms:
+            st.markdown(f"  - {symptom}")
+    else:
+        st.markdown("- **Symptoms:** N/A")
+        
+        
+    
+def display_plan(plan_data):
+        if not plan_data:
+            st.warning("⚠️ No plan available.")
+            return
+
+        st.subheader("📋 Plan of Action")
+
+        next_step = prettify_text(plan_data.get("next_step", "N/A"))
+        reason = plan_data.get("reason", "N/A")
+        optional_tags = plan_data.get("optional_tags", [])
+        risk = prettify_text(plan_data.get("risk", "N/A"))
+        eta = plan_data.get("eta", "N/A")
+
+        st.markdown(f"- **Next Step:** {next_step}")
+        st.markdown(f"- **Reason:** {reason}")
+
+        if optional_tags:
+            st.markdown("- **Optional Tags:**")
+            for tag in optional_tags:
+                st.markdown(f"  - {tag}")
+        else:
+            st.markdown("- **Optional Tags:** N/A")
+
+        st.markdown(f"- **Risk Level:** {risk}")
+        st.markdown(f"- **Estimated Time:** {eta}")
 
 
 def get_all_issues():
@@ -117,7 +181,8 @@ with col2:
         st.error(f"❌ Crew failed: {st.session_state['crew_error']}")
     elif st.session_state.get("crew_done"):
         st.success("✅ Crew execution complete!")
-
+        
+    retriever_result = st.session_state.get("retriever_result", {})
     if "retriever_result" in st.session_state:
         result = st.session_state["retriever_result"]
         st.subheader("🧫 Incident Summary")
@@ -158,20 +223,49 @@ with col2:
             st.subheader("🧾 Anything else we need to know?")
             st.markdown(result["extra_info"])
 
-    if "analyzer_result" in st.session_state:
-        st.subheader("🔍 Analysis")
-        analysis_json = st.session_state["analyzer_result"].get(
-            "analysis", "{}")
-        try:
-            parsed = json.loads(analysis_json)
-            st.json(parsed)
-        except:
-            st.markdown(analysis_json)
+    analyzer_result = st.session_state.get("analyzer_result", {})
+    if analyzer_result and "analysis" in analyzer_result:
+        analysis = analyzer_result["analysis"]
+        # if isinstance(analysis, dict):
+        #     st.markdown("### 🔎 Analysis")
+        #     st.markdown(f"- **Root Cause:** `{analysis.get('root_cause', 'N/A')}`")
+        #     st.markdown(f"- **Severity:** `{analysis.get('severity', 'N/A')}`")
+        #     st.markdown(f"- **Service:** `{analysis.get('service', 'N/A')}`")
+            
+        #     symptoms = analysis.get('symptoms', [])
+        #     if symptoms:
+        #         st.markdown("- **Symptoms:**")
+        #         for symptom in symptoms:
+        #             st.markdown(f"  - {symptom}")
+        # else:
+        #     st.warning("⚠️ Analyzer output is not structured properly.")
+    else:
+        st.warning("⚠️ No analysis available.")
+    display_analysis(analyzer_result.get("analysis", {}))
 
-    if "planner_result" in st.session_state:
-        st.subheader("Plan of Action")
-        st.markdown(st.session_state["planner_result"].get(
-            "plan", "No plan available."))
+
+    planner_result = st.session_state.get("planner_result", {})
+    if planner_result and "plan" in planner_result:
+        plan = planner_result["plan"]
+        # if isinstance(plan, dict):
+        #     # st.markdown("### 📋 Plan of Action")
+        #     # st.markdown(f"- **Next Step:** `{plan.get('next_step', 'N/A')}`")
+        #     # st.markdown(f"- **Reason:**\n  {plan.get('reason', 'N/A')}")
+            
+        #     # optional_tags = plan.get('optional_tags', [])
+        #     # if optional_tags:
+        #     #     st.markdown("- **Optional Tags:**")
+        #     #     for tag in optional_tags:
+        #     #         st.markdown(f"  - {tag}")
+            
+        #     # st.markdown(f"- **Risk Level:** `{plan.get('risk', 'N/A')}`")
+        #     # st.markdown(f"- **Estimated Time:** `{plan.get('eta', 'N/A')}`")
+        # else:
+        #     st.warning("⚠️ Planner output is not structured properly.")
+    else:
+        st.warning("⚠️ No plan available.")
+    display_plan(planner_result.get("plan", {}))
+        
 
     if "reporter_result" in st.session_state:
         st.subheader("Incident Report")
